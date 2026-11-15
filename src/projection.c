@@ -43,6 +43,14 @@ vertex_t transform_vertex(vertex_t vertex){
     };
 }
 
+triangle_t transform_triangle(triangle_t triangle) {
+    return (triangle_t){
+        .a = transform_vertex(triangle.a),
+        .b = transform_vertex(triangle.b),
+        .c = transform_vertex(triangle.c)
+    };
+}
+
 vertex2_t project_vertex(vertex_t vertex){
     vertex2_t vertex2;
 
