@@ -2,6 +2,7 @@
 
 #include "rasterization.h"
 #include "framebuffer.h"
+#include "Zbuffer.h"
 
 typedef struct {
     float min_x;
@@ -51,6 +52,8 @@ void rasterize_triangle(triangle2_t triangle, uint32_t color){
     int min_y = (int)ceilf(box.min_y - 0.5f);
     int max_y = (int)floorf(box.max_y - 0.5f);
 
+    float inv_area = 1.0f / area;
+
     for(int y = min_y; y <= max_y; y++) {
         for (int x = min_x; x <= max_x; x++) {
             vertex2_t p = {
@@ -64,10 +67,34 @@ void rasterize_triangle(triangle2_t triangle, uint32_t color){
 
             if (area > 0.0f) {
                 if (w0 >= 0 && w1 >= 0 && w2 >= 0) {
+                    float alpha = w1 * inv_area;
+                    float beta = w2 * inv_area;
+                    float gamma = w0 * inv_area;
+
+                    float z =
+                        alpha * triangle.a.z +
+                        beta  * triangle.b.z +
+                        gamma * triangle.c.z;
+
+                    if(z >= Zbuffer_get_pixel(x, y))continue;
+                    
+                    Zbuffer_set_pixel(x, y, z);
                     framebuffer_set_pixel(x, y, color);
                 }
             } else {
                 if (w0 <= 0 && w1 <= 0 && w2 <= 0) {
+                    float alpha = w1 * inv_area;
+                    float beta = w2 * inv_area;
+                    float gamma = w0 * inv_area;
+
+                    float z =
+                        alpha * triangle.a.z +
+                        beta  * triangle.b.z +
+                        gamma * triangle.c.z;
+
+                    if(z >= Zbuffer_get_pixel(x, y))continue;
+                    
+                    Zbuffer_set_pixel(x, y, z);
                     framebuffer_set_pixel(x, y, color);
                 }
             }
