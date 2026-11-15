@@ -7,43 +7,38 @@
 
 camera_t camera = {0};
 
-vertex_t transform_vertex(vertex_t vertex){
-    float x = vertex.x - camera.position.x;
-    float y = vertex.y - camera.position.y;
-    float z = vertex.z - camera.position.z;
-
-    float cy = cosf(camera.rotation.yaw);
-    float sy = sinf(camera.rotation.yaw);
-
-    float cp = cosf(camera.rotation.pitch);
-    float sp = sinf(camera.rotation.pitch);
-
-    float cr = cosf(camera.rotation.roll);
-    float sr = sinf(camera.rotation.roll);
-
-    float tx = cy * x - sy * z;
-    float tz = sy * x + cy * z;
-    x = tx;
-    z = tz;
-
-    float ty = cp * y + sp * z;
-    tz = -sp * y + cp * z;
-    y = ty;
-    z = tz;
-
-    tx = cr * x + sr * y;
-    ty = -sr * x + cr * y;
-    x = tx;
-    y = ty;
-
-    return (vertex_t){
-        .x = x,
-        .y = y,
-        .z = z
-    };
+void camera_update(){
+    camera.cy = cosf(camera.rotation.yaw);
+    camera.sy = sinf(camera.rotation.yaw);
+    camera.cp = cosf(camera.rotation.pitch);
+    camera.sp = sinf(camera.rotation.pitch);
+    camera.cr = cosf(camera.rotation.roll);
+    camera.sr = sinf(camera.rotation.roll);
 }
 
-triangle_t transform_triangle(triangle_t triangle) {
+vertex_t transform_vertex(vertex_t v){
+    float t;
+
+    v.x -= camera.position.x;
+    v.y -= camera.position.y;
+    v.z -= camera.position.z;
+
+    t   = camera.cy * v.x - camera.sy * v.z;
+    v.z = camera.sy * v.x + camera.cy * v.z;
+    v.x = t;
+
+    t   = camera.cp * v.y - camera.sp * v.z;
+    v.z = camera.sp * v.y + camera.cp * v.z;
+    v.y = t;
+
+    t   = camera.cr * v.x + camera.sr * v.y;
+    v.y = -camera.sr * v.x + camera.cr * v.y;
+    v.x = t;
+
+    return v;
+}
+
+triangle_t transform_triangle(triangle_t triangle){
     return (triangle_t){
         .a = transform_vertex(triangle.a),
         .b = transform_vertex(triangle.b),
