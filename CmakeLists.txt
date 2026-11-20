@@ -1,0 +1,113 @@
+cmake_minimum_required(VERSION 3.20)
+
+set(RENDERER_PLATFORM "" CACHE STRING "Target platform")
+set(RENDERER_ARCH "" CACHE STRING "Target architecture")
+
+project(renderer LANGUAGES C CXX)
+
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+if(NOT RENDERER_PLATFORM)
+    if(WIN32)
+        set(RENDERER_PLATFORM "Windows")
+    elseif(APPLE)
+        set(RENDERER_PLATFORM "macOS")
+    elseif(UNIX)
+        set(RENDERER_PLATFORM "Linux")
+    else()
+        message(FATAL_ERROR "Unsupported host platform")
+    endif()
+endif()
+
+if(NOT RENDERER_ARCH)
+    string(TOLOWER "${CMAKE_HOST_SYSTEM_PROCESSOR}" HOST_ARCH)
+
+    if(HOST_ARCH MATCHES "^(amd64|x86_64|x64)$")
+        set(RENDERER_ARCH "x86_64")
+    elseif(HOST_ARCH MATCHES "^(i[3-6]86|x86)$")
+        set(RENDERER_ARCH "x86")
+    elseif(HOST_ARCH MATCHES "^(aarch64|arm64)$")
+        set(RENDERER_ARCH "arm64")
+    elseif(HOST_ARCH MATCHES "^arm")
+        set(RENDERER_ARCH "arm")
+    else()
+        message(FATAL_ERROR "Unsupported host architecture: ${CMAKE_HOST_SYSTEM_PROCESSOR}")
+    endif()
+endif()
+
+if(NOT RENDERER_PLATFORM MATCHES "^(Windows|Linux|macOS)$")
+    message(FATAL_ERROR "Unsupported platform: ${RENDERER_PLATFORM}")
+endif()
+
+if(NOT RENDERER_ARCH MATCHES "^(x86|x86_64|arm|arm64)$")
+    message(FATAL_ERROR "Unsupported architecture: ${RENDERER_ARCH}")
+endif()
+
+if(RENDERER_PLATFORM STREQUAL "macOS" AND RENDERER_ARCH MATCHES "^(x86|arm)$")
+    message(FATAL_ERROR "Unsupported macOS architecture: ${RENDERER_ARCH}")
+endif()
+
+add_library(renderer SHARED
+    src/export.cpp
+    src/framebuffer.c
+    src/projection.c
+    src/rasterization.c
+    src/Zbuffer.c
+)
+
+target_include_directories(renderer PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+
+if(RENDERER_PLATFORM STREQUAL "Windows")
+    set(EXTENSION dll)
+    set(PREFIX "")
+elseif(RENDERER_PLATFORM STREQUAL "macOS")
+    set(EXTENSION dylib)
+    set(PREFIX "lib")
+else()
+    set(EXTENSION so)
+    set(PREFIX "lib")
+endif()
+
+set(OUTPUT_DIR
+    "${CMAKE_CURRENT_SOURCE_DIR}/assets/bin/${RENDERER_PLATFORM}/${RENDERER_ARCH}"
+)
+
+set_target_properties(renderer PROPERTIES
+    PREFIX "${PREFIX}"
+    SUFFIX ".${EXTENSION}"
+    LIBRARY_OUTPUT_DIRECTORY "${OUTPUT_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY "${OUTPUT_DIR}"
+    ARCHIVE_OUTPUT_DIRECTORY "${OUTPUT_DIR}"
+)
+
+foreach(CONFIG DEBUG RELEASE RELWITHDEBINFO MINSIZEREL)
+    set_target_properties(renderer PROPERTIES
+        LIBRARY_OUTPUT_DIRECTORY_${CONFIG} "${OUTPUT_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY_${CONFIG} "${OUTPUT_DIR}"
+        ARCHIVE_OUTPUT_DIRECTORY_${CONFIG} "${OUTPUT_DIR}"
+    )
+endforeach()
+
+if(MSVC)
+    target_compile_options(renderer PRIVATE
+        $<$<CONFIG:Release>:/O2>
+    )
+else()
+    target_compile_options(renderer PRIVATE
+        $<$<CONFIG:Release>:-O3>
+    )
+endif()
+
+if(RENDERER_PLATFORM STREQUAL "Linux" OR RENDERER_PLATFORM STREQUAL "macOS")
+    target_link_libraries(renderer PRIVATE m)
+endif()
+
+message(STATUS "Renderer platform: ${RENDERER_PLATFORM}")
+message(STATUS "Renderer architecture: ${RENDERER_ARCH}")
+message(STATUS "Renderer output: ${OUTPUT_DIR}")

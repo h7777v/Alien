@@ -68,3 +68,24 @@ if not library_path.is_file():
     raise FileNotFoundError(f"Renderer not found: {library_path}")
 
 renderer = ctypes.CDLL(str(library_path))
+
+renderer.Zbuffer_init.argtypes = [ctypes.c_int, ctypes.c_int]
+renderer.Zbuffer_init.restype = ctypes.c_bool
+
+renderer.Zbuffer_destroy.argtypes = []
+renderer.Zbuffer_destroy.restype = None
+
+renderer.framebuffer_init.argtypes = [ctypes.c_int, ctypes.c_int]
+renderer.framebuffer_init.restype = ctypes.c_bool
+
+renderer.framebuffer_destroy.argtypes = []
+renderer.framebuffer_destroy.restype = None
+
+renderer.draw_frame.argtypes = []
+renderer.draw_frame.restype = ctypes.POINTER(ctypes.c_uint32)
+
+renderer.init_camera.argtypes = [ctypes.c_float]
+renderer.init_camera.restype = None
+
+renderer.update_camera.argtypes = [ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_float]
+renderer.update_camera.restype = None

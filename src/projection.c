@@ -23,15 +23,15 @@ vertex_t transform_vertex(vertex_t v){
     v.y -= camera.position.y;
     v.z -= camera.position.z;
 
-    t   = camera.cy * v.x - camera.sy * v.z;
+    t = camera.cy * v.x - camera.sy * v.z;
     v.z = camera.sy * v.x + camera.cy * v.z;
     v.x = t;
 
-    t   = camera.cp * v.y - camera.sp * v.z;
-    v.z = camera.sp * v.y + camera.cp * v.z;
+    t = camera.cp * v.y + camera.sp * v.z;
+    v.z = -camera.sp * v.y + camera.cp * v.z;
     v.y = t;
 
-    t   = camera.cr * v.x + camera.sr * v.y;
+    t = camera.cr * v.x + camera.sr * v.y;
     v.y = -camera.sr * v.x + camera.cr * v.y;
     v.x = t;
 

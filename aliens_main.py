@@ -1,5 +1,6 @@
 #------------- IMPORTS -----------------
 import loader
+import ctypes
 
 import game_framework.sprite_tools
 from game_framework.sprite_tools import load_directional_sprite_sheet, load_sprite_sheet_row, DirectionalAnimation
@@ -27,8 +28,12 @@ PLAYER_SPRITE_PATH = "images/sprites/fighter_sprite_frames.png"
 UFO_SPRITE_PATH = "images/sprites/ufo_sprite_1_frames.png"
 LASER_SOUND_FILE = "sounds/laser_sound.mp3"
 
+# -----
+
 SCREEN_WIDTH = 100
 SCREEN_HEIGHT = 100
+
+F = True
 
 # Adjust these to match the actual sprite sheet image sizes.
 PLAYER_FRAME_WIDTH = 72
@@ -85,54 +90,65 @@ def player_update_handler(player: SpriteObject, screen_size: ScreenSize) -> None
         player.set_animation("idle", True)
 
 
+# important stuff
+
 def handle_keydown(app: GameApp, event) -> None:
-    player = app.get_object("player")
-    bullet = app.get_object("bullet")
-
-    if event.key == pygame.K_RIGHT:
-        player.vx = PLAYER_SPEED
-    elif event.key == pygame.K_LEFT:
-        player.vx = -PLAYER_SPEED
-
-    if event.key == pygame.K_SPACE:
-        if not bullet.active:
-            bullet.active = True
-            bullet.x = player.x + player.width / 2
-            bullet.y = player.y
-            app.play_sound('fire_laser')
-
-
-def is_colliding(first: GameObject, second: GameObject) -> bool:
-    return (
-        first.x < second.x + second.width
-        and first.x + first.width > second.x
-        and first.y < second.y + second.height
-        and first.y + first.height > second.y
-    )
+    screen = app.get_object("Screen")
+    if event.key == pygame.K_w or event.key == pygame.K_UP:
+        F = True
 
 def handle_keyup(app: GameApp, event) -> None:
-    player = app.get_object("player")
+    screen = app.get_object("Screen")
+    if event.key == pygame.K_w or event.key == pygame.K_UP:
+        F = False
 
-    if event.key == pygame.K_RIGHT or event.key == pygame.K_LEFT:
-        player.vx = 0
+def update_screen(obj: GameObject, _) -> None:
+    obj.cry = 0.349066 * F # pyright: ignore[reportAttributeAccessIssue]
+    loader.renderer.update_camera(obj.cpx, obj.cpy, obj.cpz, obj.cry, obj.crp, obj.crr) # pyright: ignore[reportAttributeAccessIssue]
 
-def screen_draw_handler(obj: GameObject, surface):
-    surface = pygame.image.frombuffer(obj.buffer, (SCREEN_WIDTH, SCREEN_HEIGHT), "ARGB")
-    pygame.display.flip()
-
-def buffer_render(obj: GameObject):
-    loader.renderer.draw_frame()
+def screen_draw_handler(obj: GameObject, surface) -> None:
+    surface.blit(
+        pygame.image.frombuffer(
+            memoryview(
+                ctypes.cast(
+                    loader.renderer.draw_frame(),
+                    ctypes.POINTER(ctypes.c_uint32 * (SCREEN_WIDTH * SCREEN_HEIGHT)),
+                ).contents
+            ).cast("B"),
+            (SCREEN_WIDTH, SCREEN_HEIGHT),
+            "BGRA",
+        ),
+        (obj.x, obj.y),
+    )
 
 def build_app() -> GameApp:
     app = GameApp(width=1000, height=600, title="UFO Shooter", bg_color=(255, 255, 255))
-    
-    screen = GameObject(0, 0, SCREEN_HEIGHT, SCREEN_HEIGHT)
-    
+    screen = GameObject(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT)
+
+    if not loader.renderer.framebuffer_init(SCREEN_WIDTH, SCREEN_HEIGHT):
+        raise RuntimeError("Failed to initialise framebuffer (OOM)")
+    if not loader.renderer.Zbuffer_init(SCREEN_WIDTH, SCREEN_HEIGHT):
+        loader.renderer.framebuffer_destroy()
+        raise RuntimeError("Failed to initialise Z-buffer (OOM)")
+
     screen.set_draw_handler(screen_draw_handler)
+    screen.set_update_handler(update_screen)
+
+    loader.renderer.init_camera(ctypes.c_float(55.0))
+
+    screen.cpx = 0 # pyright: ignore[reportAttributeAccessIssue]
+    screen.cpy = 0 # pyright: ignore[reportAttributeAccessIssue]
+    screen.cpz = 0 # pyright: ignore[reportAttributeAccessIssue]
+    screen.cry = 0 # pyright: ignore[reportAttributeAccessIssue]
+    screen.crp = 0 # pyright: ignore[reportAttributeAccessIssue]
+    screen.crr = 0 # pyright: ignore[reportAttributeAccessIssue]
+
     app.add_object("Screen", screen)
 
-    return app
+    #app.set_keydown_handler(handle_keydown)
+    #app.set_keyup_handler(handle_keyup)
 
+    return app
 
 if __name__ == "__main__":
     build_app().on_execute()

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <stdbool.h>
-#include <export.h>
+#include "export.h"
 
 typedef struct {
     float* buffer;
