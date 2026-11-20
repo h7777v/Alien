@@ -27,6 +27,9 @@ PLAYER_SPRITE_PATH = "images/sprites/fighter_sprite_frames.png"
 UFO_SPRITE_PATH = "images/sprites/ufo_sprite_1_frames.png"
 LASER_SOUND_FILE = "sounds/laser_sound.mp3"
 
+SCREEN_WIDTH = 100
+SCREEN_HEIGHT = 100
+
 # Adjust these to match the actual sprite sheet image sizes.
 PLAYER_FRAME_WIDTH = 72
 PLAYER_FRAME_HEIGHT = 72
@@ -113,12 +116,20 @@ def handle_keyup(app: GameApp, event) -> None:
     if event.key == pygame.K_RIGHT or event.key == pygame.K_LEFT:
         player.vx = 0
 
+def screen_draw_handler(obj: GameObject, surface):
+    surface = pygame.image.frombuffer(obj.buffer, (SCREEN_WIDTH, SCREEN_HEIGHT), "ARGB")
+    pygame.display.flip()
+
+def buffer_render(obj: GameObject):
+    loader.renderer.draw_frame()
 
 def build_app() -> GameApp:
     app = GameApp(width=1000, height=600, title="UFO Shooter", bg_color=(255, 255, 255))
-
-    #stuff
-
+    
+    screen = GameObject(0, 0, SCREEN_HEIGHT, SCREEN_HEIGHT)
+    
+    screen.set_draw_handler(screen_draw_handler)
+    app.add_object("Screen", screen)
 
     return app
 
