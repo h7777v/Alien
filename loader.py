@@ -62,7 +62,7 @@ if library is None:
 
 ROOT = Path(__file__).resolve().parent
 
-library_path = ROOT / "renderer" / "bin" / library
+library_path = ROOT / "assets" / "bin" / library
 
 if not library_path.is_file():
     raise FileNotFoundError(f"Renderer not found: {library_path}")
