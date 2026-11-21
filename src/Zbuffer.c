@@ -1,5 +1,8 @@
 #include <stdbool.h>
 #include <math.h>
+#include <immintrin.h>
+
+#include "cpu.h"
 
 #include "framebuffer_alloc.h"
 #include "Zbuffer.h"
@@ -33,12 +36,19 @@ void Zbuffer_destroy(){
 }
 
 void Zbuffer_clear(){
-    //non simd approach
-    int cache;
-    for(int i = 0; i < zbuffer.height; i++){
-        cache = i * zbuffer.width;
-        for(int j = 0; j < zbuffer.width; j++){
-            zbuffer.buffer[j + cache] = INFINITY;
+    if(cpu_features.avx2){
+        __m256 value = _mm256_set1_ps(INFINITY);
+        for(size_t i = 0; i < zbuffer.width * zbuffer.height; i += 8){
+            _mm256_store_ps(&zbuffer.buffer[i], value);
+        }
+    }else{
+        //non simd approach
+        int cache;
+        for(int i = 0; i < zbuffer.height; i++){
+            cache = i * zbuffer.width;
+            for(int j = 0; j < zbuffer.width; j++){
+                zbuffer.buffer[j + cache] = INFINITY;
+            }
         }
     }
 }

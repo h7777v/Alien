@@ -1,5 +1,8 @@
 #include <stdbool.h>
 #include <stdint.h>
+#include <immintrin.h>
+
+#include "cpu.h"
 
 #include "framebuffer_alloc.h"
 #include "framebuffer.h"
@@ -33,12 +36,19 @@ void framebuffer_destroy(){
 }
 
 void framebuffer_clear(uint32_t color){
-    //non simd approach
-    int cache;
-    for(int i = 0; i < framebuffer.height; i++){
-        cache = i * framebuffer.width;
-        for(int j = 0; j < framebuffer.width; j++){
-            framebuffer.buffer[j + cache] = color;
+    if(cpu_features.avx2){
+        __m256i value = _mm256_set1_epi32(color);
+        for(size_t i = 0; i < framebuffer.width * framebuffer.height; i += 8){
+            _mm256_store_si256(&framebuffer.buffer[i], value);
+        }
+    }else{
+        //non simd approach
+        int cache;
+        for(int i = 0; i < framebuffer.height; i++){
+            cache = i * framebuffer.width;
+            for(int j = 0; j < framebuffer.width; j++){
+                framebuffer.buffer[j + cache] = color;
+            }
         }
     }
 }
