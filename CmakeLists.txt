@@ -57,6 +57,8 @@ add_library(renderer SHARED
     src/projection.c
     src/rasterization.c
     src/Zbuffer.c
+    src/terrain.cpp
+    src/cpu.c
 )
 
 target_include_directories(renderer PRIVATE
@@ -100,7 +102,7 @@ if(MSVC)
     )
 else()
     target_compile_options(renderer PRIVATE
-        $<$<CONFIG:Release>:-O3>
+        $<$<CONFIG:Release>:-O3 -funroll-loops>
     )
 endif()
 

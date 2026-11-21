@@ -4,6 +4,8 @@
 #include "framebuffer.h"
 #include "Zbuffer.h"
 
+//The barycentric rasterizer
+
 typedef struct {
     float min_x;
     float max_x;
@@ -41,7 +43,7 @@ static inline bounding_box_t bounding_box_clamp(bounding_box_t box){
     return box;
 }
 
-void rasterize_triangle(triangle2_t triangle, uint32_t color){
+void rasterize_triangle_barycentric(triangle2_t triangle, uint32_t color){
     float area = winding_function(triangle);
     if(area == 0)return;
     bounding_box_t box = bounding_box(triangle);
@@ -98,6 +100,86 @@ void rasterize_triangle(triangle2_t triangle, uint32_t color){
                     framebuffer_set_pixel(x, y, color);
                 }
             }
+        }
+    }
+}
+
+//The scanline rasterizer
+
+typedef struct {
+    float x;
+    float z;
+} scanline_point_t;
+
+static inline scanline_point_t interpolate_edge(vertex2_t a, vertex2_t b, float y){
+    float t = (y - a.y) / (b.y - a.y);
+
+    return (scanline_point_t){
+        a.x + (b.x - a.x) * t,
+        a.z + (b.z - a.z) * t
+    };
+}
+
+static inline void rasterize_scanline(int y, scanline_point_t left, scanline_point_t right, uint32_t color){
+    if(left.x > right.x){
+        scanline_point_t t = left;
+        left = right;
+        right = t;
+    }
+
+    int min_x = (int)fmaxf(ceilf(left.x - 0.5f), 0.0f);
+    int max_x = (int)fminf(ceilf(right.x - 0.5f), (float)framebuffer.width);
+
+    float dz = right.x != left.x ? (right.z - left.z) / (right.x - left.x) : 0.0f;
+    float z = left.z + ((float)min_x + 0.5f - left.x) * dz;
+
+    for(int x = min_x; x < max_x; x++){
+        if(z < Zbuffer_get_pixel(x, y)){
+            Zbuffer_set_pixel(x, y, z);
+            framebuffer_set_pixel(x, y, color);
+        }
+
+        z += dz;
+    }
+}
+
+void rasterize_triangle_scanline(triangle2_t triangle, uint32_t color){
+    vertex2_t v[3] = {
+        triangle.a,
+        triangle.b,
+        triangle.c
+    };
+
+    if(v[0].y > v[1].y){
+        vertex2_t t = v[0];
+        v[0] = v[1];
+        v[1] = t;
+    }
+
+    if(v[1].y > v[2].y){
+        vertex2_t t = v[1];
+        v[1] = v[2];
+        v[2] = t;
+    }
+
+    if(v[0].y > v[1].y){
+        vertex2_t t = v[0];
+        v[0] = v[1];
+        v[1] = t;
+    }
+
+    if(v[0].y == v[2].y)return;
+
+    int min_y = (int)fmaxf(ceilf(v[0].y - 0.5f), 0.0f);
+    int max_y = (int)fminf(ceilf(v[2].y - 0.5f), (float)framebuffer.height);
+
+    for(int y = min_y; y < max_y; y++){
+        float py = (float)y + 0.5f;
+
+        if(py < v[1].y){
+            rasterize_scanline(y, interpolate_edge(v[0], v[2], py), interpolate_edge(v[0], v[1], py), color);
+        }else{
+            rasterize_scanline(y, interpolate_edge(v[0], v[2], py), interpolate_edge(v[1], v[2], py), color);
         }
     }
 }

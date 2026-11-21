@@ -30,10 +30,18 @@ LASER_SOUND_FILE = "sounds/laser_sound.mp3"
 
 # -----
 
-SCREEN_WIDTH = 100
-SCREEN_HEIGHT = 100
+SCREEN_WIDTH = 1000
+SCREEN_HEIGHT = 600
 
-F = True
+craterDifficulty = 10_000_000_000_000_000
+seed = 12345
+
+# keys
+
+W = False
+A = False
+S = False
+D = False
 
 # Adjust these to match the actual sprite sheet image sizes.
 PLAYER_FRAME_WIDTH = 72
@@ -93,17 +101,34 @@ def player_update_handler(player: SpriteObject, screen_size: ScreenSize) -> None
 # important stuff
 
 def handle_keydown(app: GameApp, event) -> None:
-    screen = app.get_object("Screen")
+    global W, A, S, D
     if event.key == pygame.K_w or event.key == pygame.K_UP:
-        F = True
+        W = True
+    elif event.key == pygame.K_a or event.key == pygame.K_RIGHT:
+        A = True
+    elif event.key == pygame.K_s or event.key == pygame.K_DOWN:
+        S = True
+    elif event.key == pygame.K_d or event.key == pygame.K_LEFT:
+        D = True
 
 def handle_keyup(app: GameApp, event) -> None:
-    screen = app.get_object("Screen")
+    global W, A, S, D
     if event.key == pygame.K_w or event.key == pygame.K_UP:
-        F = False
+        W = False
+    elif event.key == pygame.K_a or event.key == pygame.K_RIGHT:
+        A = False
+    elif event.key == pygame.K_s or event.key == pygame.K_DOWN:
+        S = False
+    elif event.key == pygame.K_d or event.key == pygame.K_LEFT:
+        D = False
 
 def update_screen(obj: GameObject, _) -> None:
-    obj.cry = 0.349066 * F # pyright: ignore[reportAttributeAccessIssue]
+    print(obj.app.clock.get_fps())
+    global W, A, S, D
+    obj.cpx += 2 * W
+    obj.cpx -= 2 * S
+    obj.cry += 0.1 * D
+    obj.cry -= 0.1 * A
     loader.renderer.update_camera(obj.cpx, obj.cpy, obj.cpz, obj.cry, obj.crp, obj.crr) # pyright: ignore[reportAttributeAccessIssue]
 
 def screen_draw_handler(obj: GameObject, surface) -> None:
@@ -125,6 +150,8 @@ def build_app() -> GameApp:
     app = GameApp(width=1000, height=600, title="UFO Shooter", bg_color=(255, 255, 255))
     screen = GameObject(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT)
 
+    loader.renderer.terrain_init(seed, craterDifficulty)
+
     if not loader.renderer.framebuffer_init(SCREEN_WIDTH, SCREEN_HEIGHT):
         raise RuntimeError("Failed to initialise framebuffer (OOM)")
     if not loader.renderer.Zbuffer_init(SCREEN_WIDTH, SCREEN_HEIGHT):
@@ -134,19 +161,20 @@ def build_app() -> GameApp:
     screen.set_draw_handler(screen_draw_handler)
     screen.set_update_handler(update_screen)
 
-    loader.renderer.init_camera(ctypes.c_float(55.0))
+    loader.renderer.cpu_init()
+    loader.renderer.init_camera(ctypes.c_float(500.0))
 
     screen.cpx = 0 # pyright: ignore[reportAttributeAccessIssue]
-    screen.cpy = 0 # pyright: ignore[reportAttributeAccessIssue]
+    screen.cpy = 50 # pyright: ignore[reportAttributeAccessIssue]
     screen.cpz = 0 # pyright: ignore[reportAttributeAccessIssue]
     screen.cry = 0 # pyright: ignore[reportAttributeAccessIssue]
-    screen.crp = 0 # pyright: ignore[reportAttributeAccessIssue]
+    screen.crp = -0.3 # pyright: ignore[reportAttributeAccessIssue]
     screen.crr = 0 # pyright: ignore[reportAttributeAccessIssue]
 
     app.add_object("Screen", screen)
 
-    #app.set_keydown_handler(handle_keydown)
-    #app.set_keyup_handler(handle_keyup)
+    app.set_keydown_handler(handle_keydown)
+    app.set_keyup_handler(handle_keyup)
 
     return app
 

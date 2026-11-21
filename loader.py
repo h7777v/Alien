@@ -89,3 +89,9 @@ renderer.init_camera.restype = None
 
 renderer.update_camera.argtypes = [ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_float, ctypes.c_float]
 renderer.update_camera.restype = None
+
+renderer.terrain_init.argtypes = [ctypes.c_int, ctypes.c_uint64]
+renderer.terrain_init.restype = None
+
+renderer.cpu_init.argtypes = []
+renderer.cpu_init.restype = None

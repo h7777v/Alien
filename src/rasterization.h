@@ -14,4 +14,5 @@ typedef struct {
     vertex2_t c;
 } triangle2_t;
 
-void rasterize_triangle(triangle2_t triangle, uint32_t color);
+void rasterize_triangle_barycentric(triangle2_t triangle, uint32_t color);
+void rasterize_triangle_scanline(triangle2_t triangle, uint32_t color);

@@ -18,3 +18,14 @@ typedef struct {
     triangle_t triangle;
     uint32_t color;
 } triangle_s_t;
+
+typedef struct {
+    triangle_t triangle;
+    uint8_t brightness;
+} triangle_light_t;
+
+typedef struct {
+    float* x;
+    float* y;
+    float* z;
+} vertex_buffer_t;
